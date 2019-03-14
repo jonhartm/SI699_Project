@@ -23,6 +23,10 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     start = time.time()
     print("loading essays...")
     orig_essays_df = pd.read_csv('data/opendata_essays000.gz', escapechar='\\', names=['_projectid', '_teacherid', 'title', 'short_description', 'need_statement', 'essay', 'thankyou_note', 'impact_letter'])
+
+    # these are the only two columsn we need at the moment
+    orig_essays_df = orig_essays_df[["_projectid", "essay"]]
+
     stop = time.time()
     print("({} s)\n".format(stop-start))
 

@@ -83,10 +83,6 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
                                                id2word=id2word,
                                                num_topics=num_topics, # number of topics to extract
-                                               update_every=1,
-                                               chunksize=100,
-                                               passes=10,
-                                               alpha='auto',
                                                per_word_topics=True)
     stop = time.time()
     print("({} s)\n".format(stop-start))

@@ -69,6 +69,10 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     start = time.time()
     print("creating the gensim dictionary and corpus...")
     id2word = corpora.Dictionary(essays_df['tokens']) # Term-Document Frequency
+
+    # drop words that don't appear at least 15 times, or appear in more than 1/2 of the documents
+    # keep the number of terms specified in vocab_size
+    id2word.filter_extremes(no_below=15, no_above=0.5, keep_n=vocab_size)
     # creates a list of (int,int) tuples, where the first is the unique id of the word, and the second is the number of times it appears in the document
     corpus = [id2word.doc2bow(text) for text in essays_df['tokens']]
     stop = time.time()

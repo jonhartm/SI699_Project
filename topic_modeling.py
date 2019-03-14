@@ -16,6 +16,8 @@ def print(text):
     sys.stdout.write(str(text))
     sys.stdout.flush()
 
+overall_start = time.time()
+
 print("loading stopwords...\n")
 stopwords = nltk.corpus.stopwords.words('english')
 
@@ -105,3 +107,5 @@ essays_df = essays_df.merge(sent_topics_df, left_index=True, right_index=True)
 essays_df[['_projectid', 'Dominant_Topic', 'Percent_Contribution', 'Topic_Keywords']].to_csv("lda_essay.csv", index=None)
 stop = time.time()
 print("({} s)\n".format(stop-start))
+
+print("Overall Time: ({} s)\n".format(time.time()-overall_start))

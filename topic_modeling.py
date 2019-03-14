@@ -31,6 +31,9 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     print("({} s)\n".format(stop-start))
 
     # downsample to start with
+    if sample_size == 0:
+        sample_size = orig_essays_df.shape[0]
+
     essays_df = orig_essays_df.sample(sample_size)
     # essays_df = orig_essays_df
 
@@ -114,7 +117,7 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument("--sample_size", help="How many samples to draw from the data set",
-                           type=int, default="100", required=False)
+                           type=int, default="0", required=False)
     argparser.add_argument("--output", help="The csv file to write the results to. (default: results.csv)",
                            type=str, default="results.csv", required=False)
     argparser.add_argument("--vocab_size", help="Size of vocabulary",

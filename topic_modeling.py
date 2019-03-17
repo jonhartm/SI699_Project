@@ -87,10 +87,9 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
 
     start = time.time()
     print("creating the lda model...")
-    lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
-                                               id2word=id2word,
-                                               num_topics=num_topics, # number of topics to extract
-                                               per_word_topics=True)
+    lda_model = gensim.models.ldamulticore.LdaMulticore(corpus=corpus,
+                                                       id2word=id2word,
+                                                       num_topics=num_topics)
     stop = time.time()
     print("({} s)\n".format(stop-start))
 

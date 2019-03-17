@@ -64,7 +64,6 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     start = time.time()
     print("creating tokens from unigram/bigram/trigrams...")
     essays_df['tokens'] = essays_df['unigrams'].apply(lambda x: (token for token in trigram_mod[bigram_mod[x]] if token not in stopwords))
-    essays_df.to_csv("temp.csv")
     stop = time.time()
     print("({} s)\n".format(stop-start))
 

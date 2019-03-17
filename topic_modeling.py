@@ -16,10 +16,6 @@ def print(text):
     sys.stdout.flush()
 
 def do_modeling(output, sample_size, num_topics, vocab_size):
-    print("loading stopwords...\n")
-    nltk.download('stopwords')
-    stopwords = nltk.corpus.stopwords.words('english')
-
     start = time.time()
     print("loading essays...")
     orig_essays_df = pd.read_csv('data/opendata_essays000.gz', escapechar='\\', names=['_projectid', '_teacherid', 'title', 'short_description', 'need_statement', 'essay', 'thankyou_note', 'impact_letter'])
@@ -63,7 +59,7 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     # exclude any tokens that appear in the list "stopwords"
     start = time.time()
     print("creating tokens from unigram/bigram/trigrams...")
-    essays_df['tokens'] = essays_df['unigrams'].apply(lambda x: (token for token in trigram_mod[bigram_mod[x]] if token not in stopwords))
+    essays_df['tokens'] = essays_df['unigrams'].apply(lambda x: (token for token in trigram_mod[bigram_mod[x]]))
     stop = time.time()
     print("({} s)\n".format(stop-start))
 

@@ -66,6 +66,13 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     # we don't have any use for the unigram lists anymore - just drop them
     essays_df.drop(columns=['unigrams'], inplace=True)
 
+    start = time.time()
+    print("stemming tokens...")
+    # stem
+    stemmer = PorterStemmer()
+    essays_df['tokens'] = essays_df['tokens'].apply(lambda x: [stemmer.stem(token) for token in x])
+    print("({} s)\n".format(time.time()-start))
+
     # using gensim, create the dictionary and the corpus to input into the LDA model
     # from https://www.machinelearningplus.com/nlp/topic-modeling-gensim-python/
     start = time.time()

@@ -123,7 +123,8 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     print("merging with original dataframe and exporting...")
     essays_df.reset_index(inplace=True)
     essays_df = essays_df.merge(doc_topics_df, left_index=True, right_index=True)
-    essays_df[["_projectid", "Topic_1", "Topic_2", "Topic_3"]].to_csv(output)
+    essays_df.set_index("_projectid", inplace=True)
+    essays_df[["Topic_1", "Topic_2", "Topic_3"]].to_csv(output)
     print("({} s)\n".format(time.time()-start))
 
 if __name__ == "__main__":

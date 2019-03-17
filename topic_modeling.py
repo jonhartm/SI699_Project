@@ -99,22 +99,32 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     # print(lda_model.print_topics())
 
     start = time.time()
-    print("creating a dataframe to relate topics to essays...")
-    sent_topics_df = pd.DataFrame()
-    for i, row in enumerate(lda_model[corpus]):
-        row = sorted(row[0], key=lambda x: x[1], reverse=True)
-        (topic_num, prop_topic) = row[0]
-        wp = lda_model.show_topic(topic_num)
-        topic_keywords = ", ".join([word for word, prop in wp])
-        sent_topics_df = sent_topics_df.append(pd.Series([int(topic_num), round(prop_topic,4), topic_keywords]), ignore_index=True)
-    sent_topics_df.columns = ['Dominant_Topic', 'Percent_Contribution', 'Topic_Keywords']
+    print("saving topic term lists...")
+    topic_terms = {}
+    for topic in range(num_topics):
+        topic_terms[topic] = [id2word[word[0]] for word in lda_model.get_topic_terms(topic, topn=20)]
+    with open("topic.terms", 'w') as f:
+        f.write(''.join(["{}: {}\n".format(topic,','.join(terms)) for topic,terms in topic_terms.items()]))
+    print("({} s)\n".format(time.time()-start))
 
-    print("exporting topics...")
+    start = time.time()
+    print("getting top three topics per doc...")
+    topic_by_doc = {}
+    for i, row in enumerate(lda_model[corpus]):
+        row = sorted(row, key=lambda x: x[1], reverse=True)
+        topic_by_doc[i] = [x[0] for x in row][:3]
+
+    # https://stackoverflow.com/questions/19736080/creating-dataframe-from-a-dictionary-where-entries-have-different-lengths
+    doc_topics_df = pd.DataFrame(dict([(k,pd.Series(v)) for k,v in topic_by_doc.items()])).transpose()
+    doc_topics_df.columns = ["Topic_"+str(x+1) for x in range(3)]
+    print("({} s)\n".format(time.time()-start))
+
+    start = time.time()
+    print("merging with original dataframe and exporting...")
     essays_df.reset_index(inplace=True)
-    essays_df = essays_df.merge(sent_topics_df, left_index=True, right_index=True)
-    essays_df[['_projectid', 'Dominant_Topic', 'Percent_Contribution', 'Topic_Keywords']].to_csv(output, index=None)
-    stop = time.time()
-    print("({} s)\n".format(stop-start))
+    essays_df = essays_df.merge(doc_topics_df, left_index=True, right_index=True)
+    essays_df[["_projectid", "Topic_1", "Topic_2", "Topic_3"]].to_csv(output)
+    print("({} s)\n".format(time.time()-start))
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()

@@ -59,9 +59,20 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     # exclude any tokens that appear in the list "stopwords"
     start = time.time()
     print("creating tokens from unigram/bigram/trigrams...")
-    essays_df['tokens'] = essays_df['unigrams'].apply(lambda x: (token for token in trigram_mod[bigram_mod[x]]))
-    stop = time.time()
-    print("({} s)\n".format(stop-start))
+    # essays_df['tokens'] = essays_df['unigrams'].apply(lambda x: (token for token in trigram_mod[bigram_mod[x]]))
+
+    essays_df['tokens'] = ''
+    count = 0
+    for i,row in essays_df.iterrows():
+        essays_df.loc[i,'tokens'] = [token for token in trigram_mod[bigram_mod[row['unigrams']]]]
+        count += 1
+        if count % 1000 == 0:
+            print("{} of {}\n".format(count, essays_df.shape[0]))
+        if count % 10000 == 0:
+            print("banking tokens so far...\n")
+            essays_df.to_csv("temp.csv")
+
+    print("({} s)\n".format(time.time()-start))
 
     # we don't have any use for the unigram lists anymore - just drop them
     essays_df.drop(columns=['unigrams'], inplace=True)

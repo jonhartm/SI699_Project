@@ -48,9 +48,9 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     # from https://www.machinelearningplus.com/nlp/topic-modeling-gensim-python/
     start = time.time()
     print("building bigram/trigram models...")
-    bigram = gensim.models.Phrases([x for x in essays_df['unigrams']], min_count=50)
+    bigram = gensim.models.Phrases([x for x in essays_df['unigrams']], min_count=3000)
     bigram_mod = gensim.models.phrases.Phraser(bigram)
-    trigram = gensim.models.Phrases(bigram[[x for x in essays_df['unigrams']]], min_count=20)
+    trigram = gensim.models.Phrases(bigram[[x for x in essays_df['unigrams']]], min_count=300)
     trigram_mod = gensim.models.phrases.Phraser(trigram)
     stop = time.time()
     print("({} s)\n".format(stop-start))
@@ -92,7 +92,7 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
 
     # drop words that don't appear at least 15 times, or appear in more than 1/2 of the documents
     # keep the number of terms specified in vocab_size
-    id2word.filter_extremes(no_below=15, no_above=0.5, keep_n=vocab_size)
+    id2word.filter_extremes(no_below=2000, no_above=0.25, keep_n=vocab_size)
     # creates a list of (int,int) tuples, where the first is the unique id of the word, and the second is the number of times it appears in the document
     corpus = [id2word.doc2bow(text) for text in essays_df['tokens']]
     stop = time.time()
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     argparser.add_argument("--vocab_size", help="Size of vocabulary",
                            type=int, default=1000, required=False)
     argparser.add_argument("--num_topics", help="Number of topics",
-                           type=int, default=10, required=False)
+                           type=int, default=12, required=False)
     args = argparser.parse_args()
 
     overall_start = time.time()

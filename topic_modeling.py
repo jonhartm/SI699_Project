@@ -11,27 +11,32 @@ import gensim.corpora as corpora
 from gensim.utils import simple_preprocess
 from gensim.models import CoherenceModel
 
+# replace standard print with a version that can update in the console as we go
 def print(text):
     sys.stdout.write(str(text))
     sys.stdout.flush()
 
-def do_modeling(output, sample_size, num_topics, vocab_size):
+# perform topic modelling on the essay dataset.
+# Prints timer messages to console to update it's progress
+# params:
+#   output: The csv file to output the final results to
+#   sample_size: set to anything else to downsample the number of essays (mostly for debugging)
+#   num_topics: the number of topics for LDA to separate esasys into
+#   vocab_size: the number of terms LDA should use to determine topics
+def do_modeling(output="results.csv", sample_size=0, num_topics=12, vocab_size=10000):
     start = time.time()
     print("loading essays...")
-    orig_essays_df = pd.read_csv('data/opendata_essays000.gz', escapechar='\\', names=['_projectid', '_teacherid', 'title', 'short_description', 'need_statement', 'essay', 'thankyou_note', 'impact_letter'])
+    essays_df = pd.read_csv('data/opendata_essays000.gz', escapechar='\\', names=['_projectid', '_teacherid', 'title', 'short_description', 'need_statement', 'essay', 'thankyou_note', 'impact_letter'])
 
     # these are the only two columsn we need at the moment
-    orig_essays_df = orig_essays_df[["_projectid", "essay"]]
+    essays_df = essays_df[["_projectid", "essay"]]
 
     stop = time.time()
     print("({} s)\n".format(stop-start))
 
-    # downsample to start with
-    if sample_size == 0:
-        sample_size = orig_essays_df.shape[0]
-
-    essays_df = orig_essays_df.sample(sample_size)
-    # essays_df = orig_essays_df
+    # downsample to start with if requested
+    if sample_size != 0:
+        essays_df = essays_df.sample(sample_size)
 
     # drop any rows where the essay field is blank
     essays_df = essays_df[essays_df.essay.notnull()]
@@ -39,7 +44,7 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     # regex to strip all punctuation and replace it with whitespace, then convert to lowercase and split on all whitespace
     start = time.time()
     print("creating unigrams...")
-    essays_df['unigrams'] = essays_df['essay'].apply(lambda x: re.sub(r'[^\w\s]|\r\n',' ',x).lower().split())
+    essays_df['essay'] = essays_df['essay'].apply(lambda x: ' '.join(re.sub(r'[^\w\s]|\r\n',' ',x).lower().split()))
     stop = time.time()
     print("({} s)\n".format(stop-start))
 
@@ -48,40 +53,20 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     # from https://www.machinelearningplus.com/nlp/topic-modeling-gensim-python/
     start = time.time()
     print("building bigram/trigram models...")
-    bigram = gensim.models.Phrases([x for x in essays_df['unigrams']], min_count=3000)
+    bigram = gensim.models.Phrases([x.split() for x in essays_df['essay']], min_count=3000)
     bigram_mod = gensim.models.phrases.Phraser(bigram)
-    trigram = gensim.models.Phrases(bigram[[x for x in essays_df['unigrams']]], min_count=300)
-    trigram_mod = gensim.models.phrases.Phraser(trigram)
+    bigram_mod.save("bigrams.all")
     stop = time.time()
+    for i in range(50):
+        print([x for x in bigram_mod[essays_df.iloc[i].essay.split()] if "_" in x])
     print("({} s)\n".format(stop-start))
 
     # use the trigram and bigram models from above to get a list of tokens
     # exclude any tokens that appear in the list "stopwords"
     start = time.time()
     print("creating tokens from unigram/bigram/trigrams...")
-    # essays_df['tokens'] = essays_df['unigrams'].apply(lambda x: (token for token in trigram_mod[bigram_mod[x]]))
-
-    essays_df['tokens'] = ''
-    count = 0
-    for i,row in essays_df.iterrows():
-        essays_df.loc[i,'tokens'] = [token for token in trigram_mod[bigram_mod[row['unigrams']]]]
-        count += 1
-        if count % 1000 == 0:
-            print("{} of {}\n".format(count, essays_df.shape[0]))
-        if count % 10000 == 0:
-            print("banking tokens so far...\n")
-            essays_df.to_csv("temp.csv")
-
-    print("({} s)\n".format(time.time()-start))
-
-    # we don't have any use for the unigram lists anymore - just drop them
-    essays_df.drop(columns=['unigrams'], inplace=True)
-
-    start = time.time()
-    print("stemming tokens...")
-    # stem
     stemmer = PorterStemmer()
-    essays_df['tokens'] = essays_df['tokens'].apply(lambda x: [stemmer.stem(token) for token in x])
+    essays_df['tokens'] = essays_df['essay'].apply(lambda x: [stemmer.stem(token) for token in bigram_mod[x.split()]])
     print("({} s)\n".format(time.time()-start))
 
     # using gensim, create the dictionary and the corpus to input into the LDA model
@@ -92,7 +77,7 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
 
     # drop words that don't appear at least 15 times, or appear in more than 1/2 of the documents
     # keep the number of terms specified in vocab_size
-    id2word.filter_extremes(no_below=2000, no_above=0.25, keep_n=vocab_size)
+    id2word.filter_extremes(no_below=200, no_above=0.25, keep_n=vocab_size)
     # creates a list of (int,int) tuples, where the first is the unique id of the word, and the second is the number of times it appears in the document
     corpus = [id2word.doc2bow(text) for text in essays_df['tokens']]
     stop = time.time()
@@ -107,7 +92,11 @@ def do_modeling(output, sample_size, num_topics, vocab_size):
     stop = time.time()
     print("({} s)\n".format(stop-start))
 
-    # print(lda_model.print_topics())
+    start = time.time()
+    print("creating visualization with pyLDAvis...")
+    vis = pyLDAvis.gensim.prepare(lda_model, corpus, id2word)
+    pyLDAvis.save_html(vis, "vis_out.html")
+    print("({} s)\n".format(time.time()-start))
 
     start = time.time()
     print("saving topic term lists...")
@@ -145,7 +134,7 @@ if __name__ == "__main__":
     argparser.add_argument("--output", help="The csv file to write the results to. (default: results.csv)",
                            type=str, default="results.csv", required=False)
     argparser.add_argument("--vocab_size", help="Size of vocabulary",
-                           type=int, default=1000, required=False)
+                           type=int, default=10000, required=False)
     argparser.add_argument("--num_topics", help="Number of topics",
                            type=int, default=12, required=False)
     args = argparser.parse_args()

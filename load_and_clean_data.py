@@ -1,4 +1,4 @@
-import math
+import math, os
 import pandas as pd
 
 # Pulled right out of the Python notebook
@@ -6,9 +6,9 @@ import pandas as pd
 # Also removes columns that are currently not used - will have to be edited as we decide more columns are useful
 # params:
 #   output_filename: If none, returns a pandas DataFrame. Otherwise, outputs the cleaned data to the provided filename as a csv.
-def load_projects(output_filename=None):
+def load_projects(data_path, output_filename=None):
     # from DonorsChoose Open Data
-    projects_df = pd.read_csv('data/opendata_projects000.gz', escapechar='\\', names=['_projectid', '_teacher_acctid', '_schoolid', 'school_ncesid', 'school_latitude', 'school_longitude', 'school_city', 'school_state', 'school_zip', 'school_metro', 'school_district', 'school_county', 'school_charter', 'school_magnet', 'school_year_round', 'school_nlns', 'school_kipp', 'school_charter_ready_promise', 'teacher_prefix', 'teacher_teach_for_america', 'teacher_ny_teaching_fellow', 'primary_focus_subject', 'primary_focus_area' ,'secondary_focus_subject', 'secondary_focus_area', 'resource_type', 'poverty_level', 'grade_level', 'vendor_shipping_charges', 'sales_tax', 'payment_processing_charges', 'fulfillment_labor_materials', 'total_price_excluding_optional_support', 'total_price_including_optional_support', 'students_reached', 'total_donations', 'num_donors', 'eligible_double_your_impact_match', 'eligible_almost_home_match', 'funding_status', 'date_posted', 'date_completed', 'date_thank_you_packet_mailed', 'date_expiration'])
+    projects_df = pd.read_csv(data_path + 'opendata_projects000.gz', escapechar='\\', names=['_projectid', '_teacher_acctid', '_schoolid', 'school_ncesid', 'school_latitude', 'school_longitude', 'school_city', 'school_state', 'school_zip', 'school_metro', 'school_district', 'school_county', 'school_charter', 'school_magnet', 'school_year_round', 'school_nlns', 'school_kipp', 'school_charter_ready_promise', 'teacher_prefix', 'teacher_teach_for_america', 'teacher_ny_teaching_fellow', 'primary_focus_subject', 'primary_focus_area' ,'secondary_focus_subject', 'secondary_focus_area', 'resource_type', 'poverty_level', 'grade_level', 'vendor_shipping_charges', 'sales_tax', 'payment_processing_charges', 'fulfillment_labor_materials', 'total_price_excluding_optional_support', 'total_price_including_optional_support', 'students_reached', 'total_donations', 'num_donors', 'eligible_double_your_impact_match', 'eligible_almost_home_match', 'funding_status', 'date_posted', 'date_completed', 'date_thank_you_packet_mailed', 'date_expiration'])
 
     ####################
     # Fix Entry Errors #
@@ -113,16 +113,16 @@ def load_projects(output_filename=None):
     ###################
 
     # ids aren't needed by the classifier
-    projects_df.drop(columns=['_projectid', '_teacher_acctid', '_schoolid'], inplace=True)
+    # projects_df.drop(columns=['_teacher_acctid', '_schoolid'], inplace=True)
 
     # no geospatial analysis at the moment
-    projects_df.drop(columns=['school_latitude', 'school_longitude'], inplace=True)
+    # projects_df.drop(columns=['school_latitude', 'school_longitude'], inplace=True)
 
     # leaving out individual school details at the moment
-    projects_df.drop(columns=['school_city', 'school_state', 'school_zip', 'school_district', 'school_county'], inplace=True)
+    # projects_df.drop(columns=['school_city', 'school_state', 'school_zip', 'school_district', 'school_county'], inplace=True)
 
     # temporal fields aren't needed
-    projects_df.drop(columns=['date_posted', 'date_completed','date_thank_you_packet_mailed','date_expiration'], inplace=True)
+    projects_df.drop(columns=['date_completed','date_thank_you_packet_mailed','date_expiration'], inplace=True)
 
     # these fields are all correlated with the total price
     projects_df.drop(columns=['vendor_shipping_charges', 'sales_tax','payment_processing_charges','fulfillment_labor_materials', 'total_price_excluding_optional_support'], inplace=True)

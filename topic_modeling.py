@@ -12,7 +12,7 @@ from gensim.utils import simple_preprocess
 from gensim.models import CoherenceModel
 
 # replace standard print with a version that can update in the console as we go
-def print(text):
+def super_print(text):
     sys.stdout.write(str(text))
     sys.stdout.flush()
 
@@ -25,14 +25,14 @@ def print(text):
 #   vocab_size: the number of terms LDA should use to determine topics
 def do_modeling(output="results.csv", sample_size=0, num_topics=12, vocab_size=10000):
     start = time.time()
-    print("loading essays...")
+    super_print("loading essays...")
     essays_df = pd.read_csv('data/opendata_essays000.gz', escapechar='\\', names=['_projectid', '_teacherid', 'title', 'short_description', 'need_statement', 'essay', 'thankyou_note', 'impact_letter'])
 
     # these are the only two columsn we need at the moment
     essays_df = essays_df[["_projectid", "essay"]]
 
     stop = time.time()
-    print("({} s)\n".format(stop-start))
+    super_print("({} s)\n".format(stop-start))
 
     # downsample to start with if requested
     if sample_size != 0:
@@ -43,36 +43,36 @@ def do_modeling(output="results.csv", sample_size=0, num_topics=12, vocab_size=1
 
     # regex to strip all punctuation and replace it with whitespace, then convert to lowercase and split on all whitespace
     start = time.time()
-    print("creating unigrams...")
+    super_print("creating unigrams...")
     essays_df['essay'] = essays_df['essay'].apply(lambda x: ' '.join(re.sub(r'[^\w\s]|\r\n',' ',x).lower().split()))
     stop = time.time()
-    print("({} s)\n".format(stop-start))
+    super_print("({} s)\n".format(stop-start))
 
     # build bigram and trigram models with gensim
     # set thresholds higher if we get too many
     # from https://www.machinelearningplus.com/nlp/topic-modeling-gensim-python/
     start = time.time()
-    print("building bigram/trigram models...")
+    super_print("building bigram/trigram models...")
     bigram = gensim.models.Phrases([x.split() for x in essays_df['essay']], min_count=3000)
     bigram_mod = gensim.models.phrases.Phraser(bigram)
     bigram_mod.save("bigrams.all")
     stop = time.time()
     for i in range(50):
-        print([x for x in bigram_mod[essays_df.iloc[i].essay.split()] if "_" in x])
-    print("({} s)\n".format(stop-start))
+        super_print([x for x in bigram_mod[essays_df.iloc[i].essay.split()] if "_" in x])
+    super_print("({} s)\n".format(stop-start))
 
     # use the trigram and bigram models from above to get a list of tokens
     # exclude any tokens that appear in the list "stopwords"
     start = time.time()
-    print("creating tokens from unigram/bigram/trigrams...")
+    super_print("creating tokens from unigram/bigram/trigrams...")
     stemmer = PorterStemmer()
     essays_df['tokens'] = essays_df['essay'].apply(lambda x: [stemmer.stem(token) for token in bigram_mod[x.split()]])
-    print("({} s)\n".format(time.time()-start))
+    super_print("({} s)\n".format(time.time()-start))
 
     # using gensim, create the dictionary and the corpus to input into the LDA model
     # from https://www.machinelearningplus.com/nlp/topic-modeling-gensim-python/
     start = time.time()
-    print("creating the gensim dictionary and corpus...")
+    super_print("creating the gensim dictionary and corpus...")
     id2word = corpora.Dictionary(essays_df['tokens']) # Term-Document Frequency
 
     # drop words that don't appear at least 15 times, or appear in more than 1/2 of the documents
@@ -81,34 +81,34 @@ def do_modeling(output="results.csv", sample_size=0, num_topics=12, vocab_size=1
     # creates a list of (int,int) tuples, where the first is the unique id of the word, and the second is the number of times it appears in the document
     corpus = [id2word.doc2bow(text) for text in essays_df['tokens']]
     stop = time.time()
-    print("({} s)\n".format(stop-start))
+    super_print("({} s)\n".format(stop-start))
 
     start = time.time()
-    print("creating the lda model...")
+    super_print("creating the lda model...")
     lda_model = gensim.models.ldamulticore.LdaMulticore(corpus=corpus,
                                                        id2word=id2word,
                                                        num_topics=num_topics)
     lda_model.save("lda.model")
     stop = time.time()
-    print("({} s)\n".format(stop-start))
+    super_print("({} s)\n".format(stop-start))
 
     start = time.time()
-    print("creating visualization with pyLDAvis...")
+    super_print("creating visualization with pyLDAvis...")
     vis = pyLDAvis.gensim.prepare(lda_model, corpus, id2word)
     pyLDAvis.save_html(vis, "vis_out.html")
-    print("({} s)\n".format(time.time()-start))
+    super_print("({} s)\n".format(time.time()-start))
 
     start = time.time()
-    print("saving topic term lists...")
+    super_print("saving topic term lists...")
     topic_terms = {}
     for topic in range(num_topics):
         topic_terms[topic] = [id2word[word[0]] for word in lda_model.get_topic_terms(topic, topn=20)]
     with open("topic.terms", 'w') as f:
         f.write(''.join(["{}: {}\n".format(topic,','.join(terms)) for topic,terms in topic_terms.items()]))
-    print("({} s)\n".format(time.time()-start))
+    super_print("({} s)\n".format(time.time()-start))
 
     start = time.time()
-    print("getting top three topics per doc...")
+    super_print("getting top three topics per doc...")
     topic_by_doc = {}
     for i, row in enumerate(lda_model[corpus]):
         row = sorted(row, key=lambda x: x[1], reverse=True)
@@ -117,15 +117,15 @@ def do_modeling(output="results.csv", sample_size=0, num_topics=12, vocab_size=1
     # https://stackoverflow.com/questions/19736080/creating-dataframe-from-a-dictionary-where-entries-have-different-lengths
     doc_topics_df = pd.DataFrame(dict([(k,pd.Series(v)) for k,v in topic_by_doc.items()])).transpose()
     doc_topics_df.columns = ["Topic_"+str(x+1) for x in range(3)]
-    print("({} s)\n".format(time.time()-start))
+    super_print("({} s)\n".format(time.time()-start))
 
     start = time.time()
-    print("merging with original dataframe and exporting...")
+    super_print("merging with original dataframe and exporting...")
     essays_df.reset_index(inplace=True)
     essays_df = essays_df.merge(doc_topics_df, left_index=True, right_index=True)
     essays_df.set_index("_projectid", inplace=True)
     essays_df[["Topic_1", "Topic_2", "Topic_3"]].to_csv(output)
-    print("({} s)\n".format(time.time()-start))
+    super_print("({} s)\n".format(time.time()-start))
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
@@ -145,4 +145,4 @@ if __name__ == "__main__":
         sample_size=args.sample_size,
         num_topics=args.num_topics,
         vocab_size=args.vocab_size)
-    print("Overall Time: ({} s)\n".format(time.time()-overall_start))
+    super_print("Overall Time: ({} s)\n".format(time.time()-overall_start))
